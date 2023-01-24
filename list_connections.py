@@ -1,3 +1,4 @@
+import datetime
 import time
 import requests
 import random
@@ -10,8 +11,8 @@ import pandas as pd
 from pandas import ExcelWriter
 
 def to_excel(dataFrame,name):
-    data = pd.DataFrame(dataFrame,columns=['Data','Place','Link_place','Event','Link_event','Ganre','Time_start','Price'])
-    with pd.ExcelWriter(f'{name}.xlsx') as writer:
+    data = pd.DataFrame(dataFrame,columns=['Category','Data','Place','Link_place','Event','Link_event','Ganre','Time_start','Price'])
+    with pd.ExcelWriter(f'{name}-{datetime.date.today()}.xlsx') as writer:
         data.to_excel(writer)
     print(f'Файл {name} записан за {(time.perf_counter() - timer_start):.02f}')
 
@@ -19,7 +20,7 @@ user = fake_useragent.UserAgent().random
 header = {'user-agent': user}
 store_data =[]
 local_variable=[]
-i=1
+i=0
 timer_start = time.perf_counter()
 
 links = ['https://afisha.relax.by/kino/minsk/',
@@ -45,11 +46,15 @@ def connection_to_link(local_link):
        document_responces.append(document_responces_text)
     return document_responces
 
+def category(local_link):
+    category_name_list = [name.split('/')[-3] for name in local_link]
+    return category_name_list
 
 responces = connection_to_link(links)
 
 for responce in responces: 
-                          
+    
+    category_name= category(links)                
     soup = BeautifulSoup(responce,'html.parser')
     block_scedule = soup.find('div', id = 'append-shcedule')
     
@@ -95,7 +100,7 @@ for responce in responces:
             name_event_format = ' '.join(name_event_format.split()).split(',')[0]
             
             #Добавление значений в массив 
-            local_variable.append([data_event,\
+            local_variable.append([category_name[i],data_event,\
                             name_place.strip() ,link_place,\
                             name_event_format,link_event,\
                             name_ganre,time_start,\
@@ -103,7 +108,6 @@ for responce in responces:
         store_data += local_variable
         
         local_variable = []
-    to_excel(store_data, i)
-    store_data=[]
     i=i+1
+to_excel(store_data, 'afishaby')
 print(f'Парсинг закончен: {time.perf_counter() - timer_start:.02f}')
