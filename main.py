@@ -18,8 +18,24 @@ header = {'user-agent': user}
 store_data =[]
 local_variable=[]
 
-link = 'https://afisha.relax.by/kino/minsk/'
+link = ['https://afisha.relax.by/kino/minsk/',
+        'https://afisha.relax.by/theatre/minsk/',
+        'https://afisha.relax.by/ny/minsk/',
+        'https://afisha.relax.by/event/minsk/',
+        'https://afisha.relax.by/conserts/minsk/',
+        'https://afisha.relax.by/expo/minsk/',
+        'https://afisha.relax.by/kids/minsk/',
+        'https://afisha.relax.by/clubs/minsk/',
+        'https://afisha.relax.by/stand-up/minsk/',
+        'https://afisha.relax.by/education/minsk/',
+        'https://afisha.relax.by/sport/minsk/',
+        'https://afisha.relax.by/quest/minsk/',
+        'https://afisha.relax.by/entertainment/minsk/',
+        
+        ]
 responce = requests.get(link,headers= header).text
+res = 'asd'
+
 soup = BeautifulSoup(responce,'html')
 block_scedule = soup.find('div', id = 'append-shcedule')
 
@@ -35,33 +51,31 @@ for event in all_event_list:
     
     for place in rows_events:
         
-        name_place = place.find('a', class_='schedule__place-link link')#
+        name_place = place.find('a', class_='schedule__place-link link')#   
+        name_event = place.find('a', class_='schedule__event-link link')# название события
+        link_event = name_event.get('href')       #ссылка на событие
+        name_ganre = place.find('a', class_='schedule__event-dscr text-black-light')#жанр события
+        time_start_arr = place.findAll('a', \
+                                       class_='schedule__seance-time schedule__seance--buy js-buy-ticket')#массив время начала
+        price_event_arr = place.findAll('span', \
+                                        class_='seance-price')#массив цен на билеты
         
-        if name_place:#
+        if name_place or name_ganre or price_event_arr:#проверка значение на None
             link_place = name_place.get('href')
             name_place = name_place.text
+            name_ganre = name_ganre.text
+            
             prev_name_place = name_place
         else:
             name_place = prev_name_place
-      
-        name_event = place.find('a', class_='schedule__event-link link')#
-        link_event = name_event.get('href')       #
-        name_ganre = place.find('a', class_='schedule__event-dscr text-black-light')#
-        
-        if name_ganre:#
-            name_ganre = name_ganre.text
-            
-        time_start_arr = place.findAll('a', \
-                                       class_='schedule__seance-time schedule__seance--buy js-buy-ticket')#
-        price_event_arr = place.findAll('span', \
-                                        class_='seance-price')#
+               
+        #форматирование строк
         time_start = ', '.join([time.text.strip() \
                                 for time in time_start_arr])#
         price_event = ', '.join([price.text \
                                 for price in price_event_arr])#
-        
-        #форматирование строк
-        data_event=' '.join(data_event.split()).split(',')[0]
+        data_event=' '.join(data_event.split())\
+                      .split(',')[0]
         name_event_format = name_event.text
         name_event_format = ' '.join(name_event_format.split()).split(',')[0]
         
@@ -75,5 +89,7 @@ for event in all_event_list:
     
     local_variable = []
 df = pd.DataFrame(store_data,columns=['Data','Place','Link_place','Event','Link_event','Ganre','Time_start','Price'])
+
+
 to_excel(store_data)
 
