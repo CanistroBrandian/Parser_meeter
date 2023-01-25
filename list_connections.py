@@ -11,59 +11,70 @@ import pandas as pd
 from pandas import ExcelWriter
 
 def to_excel(dataFrame,name):
-    data = pd.DataFrame(dataFrame,columns=['Category','Data','Place','Link_place','Event','Link_event','Ganre','Time_start','Price'])
+    data = pd.DataFrame(dataFrame,columns=['City','Category','Data','Place','Link_place','Event','Link_event','Ganre','Time_start','Price'])
     with pd.ExcelWriter(f'{name}-{datetime.date.today()}.xlsx') as writer:
         data.to_excel(writer)
     print(f'Файл {name} записан за {(time.perf_counter() - timer_start):.02f}')
+    
+def connection_to_link(local_links): 
+    document_responces = []
+    document_responces_text = ''
+    for link in local_links:
+       document_responces_text =  requests.get(link, headers = header).text
+       document_responces.append(document_responces_text)
+    return document_responces
+
+def category(local_link):
+    category_name_list = [name.split('/')[-2] for name in local_link]
+    return category_name_list
+
+def get_links_with_city(links,cities):
+    list_links_cities=[]
+    for city in cities:
+        for link in links:
+            list_links_cities.append(link+city)
+    return list_links_cities
+
 
 user = fake_useragent.UserAgent().random
 header = {'user-agent': user}
+
 store_data =[]
 local_variable=[]
 i=0
 timer_start = time.perf_counter()
 
-links = ['https://afisha.relax.by/kino/minsk/',
-        'https://afisha.relax.by/theatre/minsk/',
-        'https://afisha.relax.by/ny/minsk/',
-        'https://afisha.relax.by/event/minsk/',
-        'https://afisha.relax.by/conserts/minsk/',
-        'https://afisha.relax.by/expo/minsk/',
-        'https://afisha.relax.by/kids/minsk/',
-        'https://afisha.relax.by/clubs/minsk/',
-        'https://afisha.relax.by/stand-up/minsk/',
-        'https://afisha.relax.by/education/minsk/',
-        'https://afisha.relax.by/sport/minsk/',
-        'https://afisha.relax.by/quest/minsk/',
-        'https://afisha.relax.by/entertainment/minsk/',        
+cities = ['minsk', 'brest', 'gomel','mogilev','vitebsk','grodno']
+links = ['https://afisha.relax.by/kino/',
+        'https://afisha.relax.by/theatre/',
+        'https://afisha.relax.by/ny/',
+        'https://afisha.relax.by/event/',
+        'https://afisha.relax.by/conserts/',
+        'https://afisha.relax.by/expo/',
+        'https://afisha.relax.by/kids/',
+        'https://afisha.relax.by/clubs/',
+        'https://afisha.relax.by/stand-up/',
+        'https://afisha.relax.by/education/',
+        'https://afisha.relax.by/sport/',
+        'https://afisha.relax.by/quest/',
+        'https://afisha.relax.by/entertainment/',        
         ]
 
-def connection_to_link(local_link): 
-    document_responces = []
-    document_responces_text = ''
-    for responce in local_link:
-       document_responces_text =  requests.get(responce, headers = header).text
-       document_responces.append(document_responces_text)
-    return document_responces
-
-def category(local_link):
-    category_name_list = [name.split('/')[-3] for name in local_link]
-    return category_name_list
-
-responces = connection_to_link(links)
-
-for responce in responces: 
-    
-    category_name= category(links)                
+links_list_with_cities =get_links_with_city(links,cities)
+responces = connection_to_link(links_list_with_cities)
+i=0 
+for responce in responces:         
     soup = BeautifulSoup(responce,'html.parser')
     block_scedule = soup.find('div', id = 'append-shcedule')
-    
+    city_name = links_list_with_cities[i].split('/')[-1] 
+    category_name = links_list_with_cities[i].split('/')[-2] 
+      
     # event info
     all_event_list = [event for event in block_scedule.findAll('div', class_='schedule__list')]
     date_event = block_scedule.find('h5')
     place = block_scedule.findAll('div', id='schedule__place_wrap')
     
-    for event in all_event_list:
+    for event in all_event_list:       
         data_event = event.find('h5').text #дата
         table_events = event.find('div', id='theatre-table') #Таблица событий за день
         rows_events = table_events.findAll('div', class_='schedule__table--movie__item')#строки события 
@@ -89,6 +100,7 @@ for responce in responces:
                
             if name_ganre: name_ganre = name_ganre.text
             if price_event_arr: price_event_arr
+           
             #форматирование строк
             time_start = ', '.join([time.text.strip() \
                                     for time in time_start_arr])#
@@ -98,15 +110,14 @@ for responce in responces:
                         .split(',')[0]
             name_event_format = name_event.text
             name_event_format = ' '.join(name_event_format.split()).split(',')[0]
-            
+
             #Добавление значений в массив 
-            local_variable.append([category_name[i],data_event,\
+            local_variable.append([city_name, category_name,data_event,\
                             name_place.strip() ,link_place,\
                             name_event_format,link_event,\
                             name_ganre,time_start,\
                             price_event])
-        store_data += local_variable
-        
+        store_data += local_variable        
         local_variable = []
     i=i+1
 to_excel(store_data, 'afishaby')
